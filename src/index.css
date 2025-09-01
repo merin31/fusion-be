@@ -6,16 +6,16 @@
   box-sizing: border-box;
 }
 
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* prevent scroll */
+}
+
 body,
 button,
 input {
   font-family: "Josefin Sans", sans-serif;
-}
-
-body {
-  max-height: 100vh;
-  max-width: 100vw;
-  overflow: hidden;
 }
 
 .Toastify__toast-theme--dark {

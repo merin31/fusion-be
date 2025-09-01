@@ -6,48 +6,54 @@ export default function Contacts({ contacts, changeChat }) {
   const [currentUserName, setCurrentUserName] = useState(undefined);
   const [currentUserImage, setCurrentUserImage] = useState(undefined);
   const [currentSelected, setCurrentSelected] = useState(undefined);
-  useEffect(async () => {
-    const data = await JSON.parse(
-      localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
-    );
-    setCurrentUserName(data.username);
-    setCurrentUserImage(data.avatarImage);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const data = await JSON.parse(
+        localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
+      );
+      setCurrentUserName(data.username);
+      setCurrentUserImage(data.avatarImage);
+    };
+    loadUser();
   }, []);
+
   const changeCurrentChat = (index, contact) => {
     setCurrentSelected(index);
-    changeChat(contact);
+    if (contact) changeChat(contact); // pass full contact object
   };
+
   return (
     <>
-      {currentUserImage && currentUserImage && (
+      {currentUserImage && currentUserName && (
         <Container>
           <div className="brand">
             <img src={Logo} alt="logo" />
             <h3>XChat</h3>
           </div>
+
           <div className="contacts">
-            {contacts.map((contact, index) => {
-              return (
-                <div
-                  key={contact._id}
-                  className={`contact ${
-                    index === currentSelected ? "selected" : ""
-                  }`}
-                  onClick={() => changeCurrentChat(index, contact)}
-                >
-                  <div className="avatar">
-                    <img
-                      src={`data:image/svg+xml;base64,${contact.avatarImage}`}
-                      alt=""
-                    />
-                  </div>
-                  <div className="username">
-                    <h3>{contact.username}</h3>
-                  </div>
+            {contacts.map((contact, index) => (
+              <div
+                key={contact._id}
+                className={`contact ${
+                  index === currentSelected ? "selected" : ""
+                }`}
+                onClick={() => changeCurrentChat(index, contact)}
+              >
+                <div className="avatar">
+                  <img
+                    src={`data:image/svg+xml;base64,${contact.avatarImage}`}
+                    alt="avatar"
+                  />
                 </div>
-              );
-            })}
+                <div className="username">
+                  <h3>{contact.username}</h3>
+                </div>
+              </div>
+            ))}
           </div>
+
           <div className="current-user">
             <div className="avatar">
               <img
@@ -64,11 +70,15 @@ export default function Contacts({ contacts, changeChat }) {
     </>
   );
 }
+
 const Container = styled.div`
   display: grid;
-  grid-template-rows: 10% 75% 15%;
   overflow: hidden;
+  width: 300px; 
+  grid-template-rows: 10% 1fr 5rem; 
   background-color: #080420;
+  min-height: 0;   /* ✅ allow children (contacts) to shrink */
+
   .brand {
     display: flex;
     align-items: center;
@@ -82,12 +92,15 @@ const Container = styled.div`
       text-transform: uppercase;
     }
   }
+
   .contacts {
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow: auto;
     gap: 0.8rem;
+    overflow-y: auto;  /* ✅ scroll only this section */
+    min-height: 0;     /* ✅ critical for grid children */
+
     &::-webkit-scrollbar {
       width: 0.2rem;
       &-thumb {
@@ -96,6 +109,7 @@ const Container = styled.div`
         border-radius: 1rem;
       }
     }
+
     .contact {
       background-color: #ffffff34;
       min-height: 5rem;
@@ -107,17 +121,26 @@ const Container = styled.div`
       gap: 1rem;
       align-items: center;
       transition: 0.5s ease-in-out;
-      .avatar {
-        img {
-          height: 3rem;
-        }
+      overflow: hidden;   /* ✅ keeps children inside */
+
+      .avatar img {
+        height: 3rem;
       }
+
       .username {
-        h3 {
-          color: white;
-        }
+        flex: 1;          /* ✅ take remaining space */
+        min-width: 0;     /* ✅ required for ellipsis */
+      }
+
+      .username h3 {
+        color: white;
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;  /* ✅ truncate long usernames */
       }
     }
+
     .selected {
       background-color: #9a86f3;
     }
@@ -128,25 +151,37 @@ const Container = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 2rem;
-    .avatar {
-      img {
-        height: 4rem;
-        max-inline-size: 100%;
-      }
+    gap: 1rem;
+    height: 5rem;            /* fixed height to prevent expansion */
+    min-height: 0;           /* allow shrink if needed */
+    overflow: hidden;        /* prevent internal content from pushing height */
+
+    .avatar img {
+      height: 4rem;
+      max-width: 100%;   /* ensures it doesn't overflow */
+      object-fit: contain;
     }
+
     .username {
-      h2 {
-        color: white;
-      }
+      flex: 1;
+      min-width: 0;
     }
+
+    .username h2 {
+      color: white;
+      font-size: 1rem;   /* cap size */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;  /* prevent text from expanding row */
+    }
+
     @media screen and (min-width: 720px) and (max-width: 1080px) {
       gap: 0.5rem;
-      .username {
-        h2 {
-          font-size: 1rem;
-        }
+      .username h2 {
+        font-size: 1rem;
       }
     }
   }
 `;
+
+
