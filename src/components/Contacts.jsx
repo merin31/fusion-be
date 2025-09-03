@@ -72,14 +72,15 @@ export default function Contacts({ contacts, changeChat }) {
 }
 
 const Container = styled.div`
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   overflow: hidden;
-  width: 300px; 
-  grid-template-rows: 10% 1fr 5rem; 
+  width: 25%;
   background-color: #080420;
-  min-height: 0;   /* ✅ allow children (contacts) to shrink */
 
   .brand {
+    margin-top: 20px;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -152,12 +153,12 @@ const Container = styled.div`
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    height: 5rem;            /* fixed height to prevent expansion */
+    padding: 10px;            /* fixed height to prevent expansion */
     min-height: 0;           /* allow shrink if needed */
     overflow: hidden;        /* prevent internal content from pushing height */
 
     .avatar img {
-      height: 4rem;
+      height: 3rem;
       max-width: 100%;   /* ensures it doesn't overflow */
       object-fit: contain;
     }

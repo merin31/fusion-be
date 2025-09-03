@@ -159,10 +159,10 @@ const Container = styled.div`
   position: relative;
 
   .container {
-    height: 85vh;
-    width: 85vw;
+    height: 100vh;
+    width: 100vw;
     background-color: #00000076;
-    display: grid;
+    display: flex;
     grid-template-columns: 25% 75%;
     transition: all 0.3s ease;
 

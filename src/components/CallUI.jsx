@@ -27,7 +27,15 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
     pc.ontrack = (event) => {
       logEvent("Remote track received");
       setRemoteStream(event.streams[0]);
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+      else {
+        const [remoteStream] = event.streams;
+        const audioElement = document.getElementById("remoteAudio");
+        audioElement.srcObject = remoteStream;
+        audioElement.play().catch(err => console.error("Playback failed:", err));
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -58,7 +66,7 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
 
     const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localVideoRef.current.srcObject = localStream;
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -73,9 +81,10 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
   // 📥 Handle socket events
   useEffect(() => {
     if (!socket) return;
+
     socket.on("connect", () => {
-      console.log("Socket connected in CallUI:", socket.id);
-  });
+      console.log("✅ Socket connected in CallUI:", socket.id);
+    });
 
     socket.on("webrtc-offer", ({ from, offer }) => {
       logEvent("Incoming call", { from });
@@ -108,7 +117,15 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
       socket.off("webrtc-ice");
       socket.off("webrtc-end");
     };
-  }, [socket]); 
+  }, [socket]);
+
+  // ✅ Register user once socket + currentUser are ready
+  useEffect(() => {
+    if (socket && currentUser?._id) {
+      socket.emit("add-user", currentUser._id);
+      logEvent("User registered on socket", { user: currentUser._id });
+    }
+  }, [socket, currentUser]);
 
   // ✅ Accept call
   const acceptCall = async () => {
@@ -121,16 +138,16 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
 
     const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localVideoRef.current.srcObject = localStream;
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
     await pc.setRemoteDescription(incomingCall.offer);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    socket.emit("webrtc-answer", { 
-      from: currentUser._id, 
-      to: incomingCall.from, 
-      answer 
+    socket.emit("webrtc-answer", {
+      from: currentUser._id,
+      to: incomingCall.from,
+      answer,
     });
 
     setCallAccepted(true);
@@ -154,7 +171,7 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
       peerConnectionRef.current = null;
     }
     if (localVideoRef.current?.srcObject) {
-      localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      localVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
     }
     setCallAccepted(false);
     setRemoteStream(null);
@@ -162,31 +179,31 @@ const CallUI = ({ socket, currentUser, selectedUser }) => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <h2>Call UI</h2>
+    <div>
+      <audio id="remoteAudio" autoPlay playsInline></audio>
 
-      {/* Local Video */}
-      <video ref={localVideoRef} autoPlay muted playsInline style={{ width: 200, height: 150, backgroundColor: "#000" }} />
+      <video ref={localVideoRef} autoPlay playsInline muted className="w-1/2" />
+      <video ref={remoteVideoRef} autoPlay playsInline className="w-1/2" />
 
-      {/* Remote Video */}
-      {callAccepted && remoteStream && (
-        <video ref={remoteVideoRef} autoPlay playsInline style={{ width: 200, height: 150, backgroundColor: "#000" }} />
-      )}
-
-      {/* Call Buttons */}
-      {!callAccepted && !incomingCall && selectedUser?._id && (
-        <button onClick={startCall}>📞 Call {selectedUser.username || "User"}</button>
+      {!callAccepted && selectedUser && (
+        <button onClick={startCall}>📞 Call {selectedUser.username}</button>
       )}
 
       {incomingCall && !callAccepted && (
         <div>
-          <p>📲 {incomingCall.from} is calling...</p>
+          <p>Incoming call from {incomingCall.from}</p>
           <button onClick={acceptCall}>✅ Accept</button>
           <button onClick={rejectCall}>❌ Reject</button>
         </div>
       )}
 
-      {callAccepted && <button onClick={cleanupCall}>🔚 End Call</button>}
+      {callAccepted && (
+        <div>
+          <p>Call in progress...</p>
+          <button onClick={cleanupCall}>🔚 End Call</button>
+        </div>
+
+      )}
     </div>
   );
 };
