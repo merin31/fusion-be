@@ -20,6 +20,7 @@ export const CallProvider = ({ currentUser, children }) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [remoteUserId, setRemoteUserId] = useState(null);
+  const [isVideoCall, setIsVideoCall] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -36,6 +37,7 @@ export const CallProvider = ({ currentUser, children }) => {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
+  
 
   const createPeer = async (withVideo) => {
     if (
@@ -53,6 +55,7 @@ export const CallProvider = ({ currentUser, children }) => {
 
     const pc = new RTCPeerConnection({ iceServers });
     pcRef.current = pc;
+    setIsVideoCall(withVideo);
 
     const constraints = withVideo
       ? { video: true, audio: true }
@@ -155,6 +158,8 @@ export const CallProvider = ({ currentUser, children }) => {
     const pc = await createPeer(withVideo);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
+
+
 
     setInCall(true);
     setIncomingCall(null);
@@ -270,6 +275,7 @@ export const CallProvider = ({ currentUser, children }) => {
         acceptCall,
         rejectCall,
         hangUp,
+        isVideoCall
       }}
     >
       {children}

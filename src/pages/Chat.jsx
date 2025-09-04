@@ -45,6 +45,7 @@ const CallOverlay = () => {
     hangUp,
     localVideoRef,
     remoteVideoRef,
+    isVideoCall,
   } = useCall();
 
   if (!incomingCall && !inCall) return null;
@@ -52,8 +53,20 @@ const CallOverlay = () => {
   return (
     <Overlay>
       <VideoContainer>
-        <video ref={localVideoRef} autoPlay muted />
-        <video ref={remoteVideoRef} autoPlay />
+
+        {isVideoCall ? (
+          <>
+            <video ref={localVideoRef} autoPlay muted />
+            <video ref={remoteVideoRef} autoPlay />
+          </>
+        ) : (
+
+          <>
+            <audio ref={localVideoRef} autoPlay muted />
+            <audio ref={remoteVideoRef} autoPlay />
+          </>
+        )}
+
       </VideoContainer>
 
       <Actions>
@@ -68,9 +81,12 @@ const CallOverlay = () => {
           </>
         )}
         {inCall && (
-          <button className="reject" onClick={hangUp}>
-            End Call
-          </button>
+          <>
+            <p>In Call</p>
+            <button className="reject" onClick={hangUp}>
+              End Call
+            </button>
+          </>
         )}
       </Actions>
     </Overlay>
@@ -81,44 +97,44 @@ export default function Chat() {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
-  const [currentUser , setCurrentUser ] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const LOCAL_KEY = process.env.REACT_APP_LOCALHOST_KEY || "chat-app-user";
 
   // Load current user from localStorage
   useEffect(() => {
-    const storedUser  = localStorage.getItem(LOCAL_KEY);
-    if (!storedUser ) {
+    const storedUser = localStorage.getItem(LOCAL_KEY);
+    if (!storedUser) {
       navigate("/login");
     } else {
-      setCurrentUser (JSON.parse(storedUser ));
+      setCurrentUser(JSON.parse(storedUser));
     }
   }, [navigate, LOCAL_KEY]);
 
   // Fetch contacts
   useEffect(() => {
     const fetchContacts = async () => {
-      if (!currentUser ) return;
+      if (!currentUser) return;
 
-      if (!currentUser .isAvatarImageSet) {
+      if (!currentUser.isAvatarImageSet) {
         navigate("/setAvatar");
         return;
       }
 
       try {
-        const { data } = await axios.get(`${allUsersRoute}/${currentUser ._id}`);
-        setContacts(data.filter((user) => user._id !== currentUser ._id));
+        const { data } = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+        setContacts(data.filter((user) => user._id !== currentUser._id));
       } catch (err) {
         console.error("❌ Error fetching contacts:", err);
       }
     };
 
     fetchContacts();
-  }, [currentUser , navigate]);
+  }, [currentUser, navigate]);
 
   const handleChatChange = (chat) => setCurrentChat(chat);
 
-  if (!currentUser ) {
+  if (!currentUser) {
     return (
       <LoadingContainer>
         <div className="spinner" />
@@ -128,13 +144,13 @@ export default function Chat() {
   }
 
   return (
-    <SocketProvider currentUser ={currentUser }>
-      <CallProvider currentUser ={currentUser }>
+    <SocketProvider currentUser={currentUser}>
+      <CallProvider currentUser={currentUser}>
         <Container>
           <div className="container">
             <Contacts contacts={contacts} changeChat={handleChatChange} />
             {currentChat ? (
-              <ChatContainer currentChat={currentChat} currentUser ={currentUser } />
+              <ChatContainer currentChat={currentChat} currentUser={currentUser} />
             ) : (
               <Welcome />
             )}
