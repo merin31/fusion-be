@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import styled from "styled-components";
 import { recieveMessageRoute } from "../utils/APIRoutes";
 import { useSocket } from "../context/SocketContext";
+import { FaPhone, FaVideo } from "react-icons/fa";
 import { useCall } from "../context/CallContext";
 import { aesEncrypt, aesDecrypt } from "../utils/AES";
 import Logout from "./Logout";
@@ -39,7 +40,7 @@ const FileIcon = ({ fileName }) => {
   }
 };
 
-export default function ChatContainer({ currentChat, currentUser  }) {
+export default function ChatContainer({ currentChat, currentUser }) {
   const socket = useSocket();
   const { startCall } = useCall();
 
@@ -74,7 +75,7 @@ export default function ChatContainer({ currentChat, currentUser  }) {
   };
 
   const handleSendMessage = useCallback(async () => {
-    if (!currentUser  || !currentChat || (!text.trim() && !pendingAttachment)) return;
+    if (!currentUser || !currentChat || (!text.trim() && !pendingAttachment)) return;
 
     let attachments = [];
     if (pendingAttachment) {
@@ -85,7 +86,7 @@ export default function ChatContainer({ currentChat, currentUser  }) {
     const encryptedText = text.trim() ? aesEncrypt(text.trim(), AES_KEY) : "";
 
     const messageData = {
-      from: currentUser ._id,
+      from: currentUser._id,
       to: currentChat._id,
       msgText: encryptedText,
       attachments,
@@ -110,7 +111,7 @@ export default function ChatContainer({ currentChat, currentUser  }) {
     setText("");
     setPendingAttachment(null);
     setShowAttachMenu(false);
-  }, [text, pendingAttachment, currentUser , currentChat, socket]);
+  }, [text, pendingAttachment, currentUser, currentChat, socket]);
 
   const handleFilePicked = (e) => {
     const file = e.target.files[0];
@@ -122,17 +123,17 @@ export default function ChatContainer({ currentChat, currentUser  }) {
 
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!currentUser  || !currentChat) return;
+      if (!currentUser || !currentChat) return;
 
       try {
         const { data } = await axios.post(recieveMessageRoute, {
-          from: currentUser ._id,
+          from: currentUser._id,
           to: currentChat._id,
         });
 
         const normalized = (data || [])
           .map((m) => {
-            const isSelf = m.sender?.toString() === currentUser ._id;
+            const isSelf = m.sender?.toString() === currentUser._id;
 
             const attachmentMessages = (m.attachments || []).map((att) => ({
               id: att._id || att.url,
@@ -166,7 +167,7 @@ export default function ChatContainer({ currentChat, currentUser  }) {
     };
 
     fetchMessages();
-  }, [currentChat, currentUser ]);
+  }, [currentChat, currentUser]);
 
   useEffect(() => {
     if (!socket) return;
@@ -222,7 +223,15 @@ export default function ChatContainer({ currentChat, currentUser  }) {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  if (!currentUser  || !currentChat)
+  const handleAudioCall = () => {
+    startCall(currentChat._id, currentChat.username, false);
+  };
+
+  const handleVideoCall = () => {
+    startCall(currentChat._id, currentChat.username, true);
+  };
+
+  if (!currentUser || !currentChat)
     return (
       <Empty>
         <p>Select a chat to start messaging</p>
@@ -234,18 +243,21 @@ export default function ChatContainer({ currentChat, currentUser  }) {
       <div className="chat-header">
         <div className="user-details">
           <div className="avatar">
-            {currentChat?.avatarImage && <img src={`data:image/svg+xml;base64,${currentChat.avatarImage}`} alt="avatar" />}
+            <img
+              src={`data:image/svg+xml;base64,${currentChat.avatarImage}`}
+              alt=""
+            />
           </div>
           <div className="username">
-            <h3>{currentChat?.username}</h3>
+            <h3>{currentChat.username}</h3>
           </div>
         </div>
         <div className="call-buttons">
-          <button onClick={() => startCall(currentChat._id, false)} title="Audio Call">
-            📞
+          <button onClick={handleAudioCall} title="Audio Call" className="audio-call">
+            <FaPhone size={16} />
           </button>
-          <button onClick={() => startCall(currentChat._id, true)} title="Video Call">
-            🎥
+          <button onClick={handleVideoCall} title="Video Call" className="video-call">
+            <FaVideo size={16} />
           </button>
         </div>
       </div>
@@ -327,54 +339,83 @@ const Empty = styled.div`
 
 const Container = styled.div`
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  width: 100%;
+  grid-template-rows: 10% 80% 10%;
   gap: 0.1rem;
   overflow: hidden;
-  background-color: #121212;
 
   .chat-header {
-    flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.25rem;
-    background-color: #1a1b1f;
-    color: #fff;
-    border-bottom: 1px solid #222;
-    
+    padding: 0 2rem;
+    background-color: #080420;
+
     .user-details {
       display: flex;
       align-items: center;
-      gap: 0.8rem;
-      
-      .avatar img {
-        height: 2.6rem;
-        width: 2.6rem;
+      gap: 1rem;
+
+      .avatar {
+        img {
+          height: 3rem;
+          border-radius: 50%;
+        }
+      }
+
+      .username {
+        h3 {
+          color: white;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .call-buttons {
+      display: flex;
+      gap: 15px;
+
+      button {
+        background: transparent;
+        border: 2px solid transparent;
+        color: #9a86f3;
         border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(154, 134, 243, 0.3);
+        }
+
+        &.audio-call {
+          background: linear-gradient(135deg, #4e0eff20, #997af020);
+          border-color: #4e0eff;
+
+          &:hover {
+            background: linear-gradient(135deg, #4e0eff, #997af0);
+            color: white;
+            box-shadow: 0 4px 15px rgba(78, 14, 255, 0.4);
+          }
+        }
+
+        &.video-call {
+          background: linear-gradient(135deg, #4caf5020, #45a04920);
+          border-color: #4caf50;
+
+          &:hover {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+          }
+        }
       }
-      
-      .username h3 {
-        margin: 0;
-        font-weight: 600;
-      }
-    }
-    
-    .call-buttons button {
-      background: #2d6cdf;
-      color: #fff;
-      border: 0;
-      border-radius: 6px;
-      padding: 0.4rem 0.6rem;
-      margin-left: 0.4rem;
-      cursor: pointer;
-      font-size: 1.2rem;
-      line-height: 1;
-      transition: background-color 0.3s;
-    }
-    
-    .call-buttons button:hover {
-      background-color: #1a4dbf;
     }
   }
 
@@ -388,11 +429,11 @@ const Container = styled.div`
     gap: 0.6rem;
     background: #0f1014;
   }
-  
+
   .chat-messages::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   .chat-messages::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.12);
     border-radius: 4px;
@@ -401,32 +442,32 @@ const Container = styled.div`
   .message {
     display: flex;
   }
-  
+
   .sended {
     justify-content: flex-end;
   }
-  
+
   .recieved {
     justify-content: flex-start;
   }
-  
+
   .content {
     max-width: 70%;
     padding: 0.65rem 0.9rem;
     border-radius: 0.85rem;
-    background: #474343ff;   /* ✅ White bubble */
-    color: #ece6e6ff;        /* ✅ Black text */
+    background: #474343ff; /* ✅ White bubble */
+    color: #ece6e6ff; /* ✅ Black text */
     word-break: break-word;
   }
-  
+
   .sended .content {
     border-bottom-right-radius: 0.25rem;
   }
-  
+
   .recieved .content {
     border-bottom-left-radius: 0.25rem;
   }
-  
+
   .file img {
     max-width: 280px;
     max-height: 220px;
@@ -470,11 +511,11 @@ const Container = styled.div`
     border-top: 1px solid #222;
     z-index: 10;
   }
-  
+
   .clip {
     position: relative;
   }
-  
+
   .clip > button {
     background: #2d2f36;
     color: #fff;
@@ -484,11 +525,11 @@ const Container = styled.div`
     cursor: pointer;
     font-size: 1.2rem;
   }
-  
+
   .clip > button:hover {
     filter: brightness(1.05);
   }
-  
+
   .attach-menu {
     position: absolute;
     bottom: 2.8rem;
@@ -502,7 +543,7 @@ const Container = styled.div`
     gap: 0.35rem;
     min-width: 160px;
   }
-  
+
   .attach-menu button {
     background: transparent;
     color: #fff;
@@ -511,7 +552,7 @@ const Container = styled.div`
     padding: 0.4rem 0.5rem;
     cursor: pointer;
   }
-  
+
   .attach-menu button:hover {
     background: #2a2d33;
     border-radius: 6px;
@@ -527,7 +568,7 @@ const Container = styled.div`
     outline: none;
     font-size: 1rem;
   }
-  
+
   .send {
     background: #dadfe7ff;
     color: #fff;
@@ -538,7 +579,7 @@ const Container = styled.div`
     font-size: 1.2rem;
     transition: background-color 0.3s;
   }
-  
+
   .send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
