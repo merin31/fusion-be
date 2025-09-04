@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
-
+const SERVER_URL = process.env.REACT_APP_SERVER_URL;
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children, currentUser }) => {
@@ -9,7 +9,7 @@ export const SocketProvider = ({ children, currentUser }) => {
   useEffect(() => {
     if (!currentUser) return;
 
-    const newSocket = io("http://localhost:5000", {
+    const newSocket = io(SERVER_URL, {
       transports: ["websocket"],
     });
 

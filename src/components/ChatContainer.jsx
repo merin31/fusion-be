@@ -7,6 +7,8 @@ import { useCall } from "../context/CallContext";
 import { aesEncrypt, aesDecrypt } from "../utils/AES";
 import Logout from "./Logout";
 
+const SERVER_URL = process.env.REACT_APP_SERVER_URL;
+
 const AES_KEY = "defaultkey123456";
 
 const FileIcon = ({ fileName }) => {
@@ -55,13 +57,13 @@ export default function ChatContainer({ currentChat, currentUser  }) {
     formData.append("file", file);
 
     try {
-      const { data } = await axios.post("http://localhost:5000/api/upload", formData, {
+      const { data } = await axios.post(`${SERVER_URL}/api/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       let fileUrl = data.url || data.filename || "";
       if (fileUrl && !fileUrl.startsWith("http")) {
-        fileUrl = `http://localhost:5000${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
+        fileUrl = `${SERVER_URL}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
       }
 
       return { url: fileUrl, name: file.name };
@@ -136,7 +138,7 @@ export default function ChatContainer({ currentChat, currentUser  }) {
               id: att._id || att.url,
               fromSelf: isSelf,
               type: "file",
-              message: att.url.startsWith("http") ? att.url : `http://localhost:5000${att.url}`,
+              message: att.url.startsWith("http") ? att.url : `${SERVER_URL}${att.url}`,
               fileName: att.originalName || att.name || att.url.split("/").pop(),
               createdAt: m.createdAt,
             }));
@@ -187,10 +189,10 @@ export default function ChatContainer({ currentChat, currentUser  }) {
           let url = "";
           let name = "";
           if (typeof att === "string") {
-            url = att.startsWith("http") ? att : `http://localhost:5000/upload/${att}`;
+            url = att.startsWith("http") ? att : `${SERVER_URL}/upload/${att}`;
             name = att.split("/").pop();
           } else if (att && att.url) {
-            url = att.url.startsWith("http") ? att.url : `http://localhost:5000${att.url}`;
+            url = att.url.startsWith("http") ? att.url : `${SERVER_URL}${att.url}`;
             name = att.name || att.originalName || url.split("/").pop();
           }
           return {
@@ -326,7 +328,6 @@ const Empty = styled.div`
 const Container = styled.div`
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: 100vh;
   width: 100%;
   gap: 0.1rem;
   overflow: hidden;

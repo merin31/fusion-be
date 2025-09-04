@@ -74,7 +74,7 @@ export default function Contacts({ contacts, changeChat }) {
 const Container = styled.div`
   display: grid;
   overflow: hidden;
-  width: 300px; 
+  position: relative;
   grid-template-rows: 10% 1fr 5rem; 
   background-color: #080420;
   min-height: 0;   /* ✅ allow children (contacts) to shrink */
@@ -152,6 +152,10 @@ const Container = styled.div`
     max-width: 250px;
     position: absolute;
     bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding:10px;
 
 
     .avatar img {
