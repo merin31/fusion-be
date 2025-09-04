@@ -1,3 +1,4 @@
+// CallProvider.js
 import React, {
   createContext,
   useContext,
@@ -23,20 +24,19 @@ export const CallProvider = ({ currentUser, children }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
-  // Assign streams to video elements
+  // Update video elements when streams change
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
+    if (localVideoRef.current) {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
+    if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
 
-  // Create peer connection and get media only when starting or accepting a call
   const createPeer = async (withVideo) => {
     if (
       !window.RTCPeerConnection ||
@@ -46,7 +46,12 @@ export const CallProvider = ({ currentUser, children }) => {
       throw new Error("WebRTC or media devices not supported in this browser.");
     }
 
-    const pc = new RTCPeerConnection();
+    const iceServers = [
+      { urls: "stun:stun.l.google.com:19302" },
+      // Add TURN servers here
+    ];
+
+    const pc = new RTCPeerConnection({ iceServers });
     pcRef.current = pc;
 
     const constraints = withVideo
@@ -64,14 +69,30 @@ export const CallProvider = ({ currentUser, children }) => {
     }
     setLocalStream(local);
 
-    const remote = new MediaStream();
-    setRemoteStream(remote);
+    // Start with an empty remote stream; will be replaced when tracks come in
+    setRemoteStream(new MediaStream());
 
+    // Add local tracks to peer connection
     local.getTracks().forEach((track) => pc.addTrack(track, local));
 
+    // Updated ontrack to handle adding tracks more robustly
     pc.ontrack = (event) => {
-      event.streams[0].getTracks().forEach((track) => remote.addTrack(track));
-      setRemoteStream(new MediaStream(remote.getTracks()));
+      // Sometimes multiple tracks come in separate events,
+      // add each track to a MediaStream and update remoteStream state
+      setRemoteStream((prevStream) => {
+        // If prevStream does not contain this track, add it
+        if (!prevStream) {
+          const newStream = new MediaStream();
+          newStream.addTrack(event.track);
+          return newStream;
+        }
+        // Check if track already exists to prevent duplicates
+        const exists = prevStream.getTracks().some(t => t.id === event.track.id);
+        if (!exists) {
+          prevStream.addTrack(event.track);
+        }
+        return prevStream;
+      });
     };
 
     pc.onicecandidate = (event) => {
@@ -84,18 +105,33 @@ export const CallProvider = ({ currentUser, children }) => {
       }
     };
 
+    pc.onconnectionstatechange = () => {
+      if (
+        ["disconnected", "failed", "closed"].includes(pc.connectionState)
+      ) {
+        hangUp();
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (
+        ["disconnected", "failed", "closed"].includes(pc.iceConnectionState)
+      ) {
+        hangUp();
+      }
+    };
+
     return pc;
   };
 
-  // End call and cleanup
   const endCall = useCallback(() => {
     try {
       pcRef.current
         ?.getSenders()
         ?.forEach((sender) => sender.track && sender.track.stop());
       pcRef.current?.close();
-    } catch (e) {
-      // ignore errors on cleanup
+    } catch {
+      // Ignore cleanup errors
     }
     pcRef.current = null;
 
@@ -114,7 +150,6 @@ export const CallProvider = ({ currentUser, children }) => {
     setIncomingCall(null);
   }, [localStream, remoteStream]);
 
-  // Start a call
   const startCall = async (to, withVideo = true) => {
     setRemoteUserId(to);
     const pc = await createPeer(withVideo);
@@ -132,7 +167,6 @@ export const CallProvider = ({ currentUser, children }) => {
     });
   };
 
-  // Accept incoming call
   const acceptCall = async () => {
     if (!incomingCall?.offer || !incomingCall.from) return;
     setRemoteUserId(incomingCall.from);
@@ -154,7 +188,6 @@ export const CallProvider = ({ currentUser, children }) => {
     setIncomingCall(null);
   };
 
-  // Reject incoming call
   const rejectCall = () => {
     if (!incomingCall?.from) return;
     socket?.emit("webrtc-end", {
@@ -164,7 +197,6 @@ export const CallProvider = ({ currentUser, children }) => {
     setIncomingCall(null);
   };
 
-  // Hang up ongoing call
   const hangUp = () => {
     if (!remoteUserId) return;
     socket?.emit("webrtc-end", {
@@ -174,12 +206,12 @@ export const CallProvider = ({ currentUser, children }) => {
     endCall();
   };
 
-  // Socket listeners
   useEffect(() => {
     if (!socket || !currentUser) return;
 
     const onOffer = ({ from, offer, video }) => {
       if (!inCall) {
+        setRemoteUserId(from);
         setIncomingCall({ from, offer, video });
       } else {
         console.log("Incoming call while already in call - ignoring");
@@ -188,9 +220,13 @@ export const CallProvider = ({ currentUser, children }) => {
 
     const onAnswer = async ({ answer }) => {
       if (pcRef.current && answer) {
-        await pcRef.current.setRemoteDescription(
-          new RTCSessionDescription(answer)
-        );
+        try {
+          await pcRef.current.setRemoteDescription(
+            new RTCSessionDescription(answer)
+          );
+        } catch (err) {
+          console.error("Error setting remote description on answer:", err);
+        }
       }
     };
 
