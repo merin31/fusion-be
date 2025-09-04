@@ -313,6 +313,7 @@ export default function ChatContainer({ currentChat, currentUser  }) {
 }
 
 /* ===== Styles ===== */
+/* ===== Styles ===== */
 const Empty = styled.div`
   display: flex;
   align-items: center;
@@ -323,10 +324,12 @@ const Empty = styled.div`
 `;
 
 const Container = styled.div`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   height: 100vh;
   width: 100%;
+  gap: 0.1rem;
+  overflow: hidden;
   background-color: #121212;
 
   .chat-header {
@@ -377,7 +380,6 @@ const Container = styled.div`
   .chat-messages {
     flex: 1;
     padding: 1rem 1.25rem;
-    /* Added padding bottom to avoid overlap with input */
     padding-bottom: 4.5rem;
     overflow-y: auto;
     display: flex;
@@ -411,17 +413,16 @@ const Container = styled.div`
     max-width: 70%;
     padding: 0.65rem 0.9rem;
     border-radius: 0.85rem;
-    color: #fff;
+    background: #474343ff;   /* ✅ White bubble */
+    color: #ece6e6ff;        /* ✅ Black text */
     word-break: break-word;
   }
   
   .sended .content {
-    background: #4e0eff;
     border-bottom-right-radius: 0.25rem;
   }
   
   .recieved .content {
-    background: #2a2d33;
     border-bottom-left-radius: 0.25rem;
   }
   
@@ -430,6 +431,30 @@ const Container = styled.div`
     max-height: 220px;
     border-radius: 8px;
     display: block;
+  }
+
+  /* ✅ WhatsApp-style file message */
+  .file-message {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #fff;
+    color: #000;
+    padding: 0.7rem 1rem;
+    border-radius: 0.9rem;
+    max-width: 70%;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .file-message .icon {
+    font-size: 1.3rem;
+    color: #444;
+  }
+
+  .file-message:hover {
+    background: #f0f0f0;
   }
 
   .chat-input {
@@ -503,7 +528,7 @@ const Container = styled.div`
   }
   
   .send {
-    background: #d8dee7ff;
+    background: #dadfe7ff;
     color: #fff;
     border: 0;
     border-radius: 20px;

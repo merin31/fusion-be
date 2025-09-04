@@ -146,15 +146,13 @@ const Container = styled.div`
     }
   }
 
-  .current-user {
-    background-color: #0d0d30;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    height: 5rem;            /* fixed height to prevent expansion */
-    min-height: 0;           /* allow shrink if needed */
-    overflow: hidden;        /* prevent internal content from pushing height */
+.current-user {
+    width: 260px;
+    min-width: 20px;
+    max-width: 250px;
+    position: absolute;
+    bottom: 0;
+
 
     .avatar img {
       height: 4rem;
@@ -175,6 +173,7 @@ const Container = styled.div`
       text-overflow: ellipsis;  /* prevent text from expanding row */
     }
 
+    
     @media screen and (min-width: 720px) and (max-width: 1080px) {
       gap: 0.5rem;
       .username h2 {
