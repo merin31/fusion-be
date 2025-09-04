@@ -9,6 +9,8 @@ import { allUsersRoute } from "../utils/APIRoutes";
 import { SocketProvider } from "../context/SocketContext";
 import { CallProvider, useCall } from "../context/CallContext";
 
+const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:5000';
+
 // Loading spinner container
 const LoadingContainer = styled.div`
   height: 100vh;
@@ -46,46 +48,65 @@ const CallOverlay = () => {
     localVideoRef,
     remoteVideoRef,
     isVideoCall,
+    callerName,
   } = useCall();
 
   if (!incomingCall && !inCall) return null;
 
   return (
     <Overlay>
-      <VideoContainer>
-
-        {isVideoCall ? (
-          <>
-            <video ref={localVideoRef} autoPlay muted />
-            <video ref={remoteVideoRef} autoPlay />
-          </>
-        ) : (
-
-          <>
-            <audio ref={localVideoRef} autoPlay muted />
-            <audio ref={remoteVideoRef} autoPlay />
-          </>
-        )}
-
-      </VideoContainer>
+      {isVideoCall ? (
+        <VideoContainer>
+          <div className="video-wrapper">
+            <video ref={localVideoRef} autoPlay muted className="local-video" />
+            <span className="video-label">You</span>
+          </div>
+          <div className="video-wrapper">
+            <video ref={remoteVideoRef} autoPlay className="remote-video" />
+            <span className="video-label">{callerName || 'Contact'}</span>
+          </div>
+        </VideoContainer>
+      ) : (
+        <AudioContainer>
+          <div className="audio-call-info">
+            <div className="caller-avatar">
+              🎵
+            </div>
+            <h2>{callerName || 'Contact'}</h2>
+            <p>{inCall ? 'Audio call in progress...' : 'Incoming audio call'}</p>
+          </div>
+          <audio ref={localVideoRef} autoPlay muted />
+          <audio ref={remoteVideoRef} autoPlay />
+        </AudioContainer>
+      )}
 
       <Actions>
         {incomingCall && !inCall && (
           <>
-            <button className="answer" onClick={acceptCall}>
-              Answer
-            </button>
-            <button className="reject" onClick={rejectCall}>
-              Reject
-            </button>
+            <CallInfo>
+              <p>{isVideoCall ? 'Incoming Video Call' : 'Incoming Audio Call'}</p>
+              <span>from {callerName || 'Contact'}</span>
+            </CallInfo>
+            <ButtonGroup>
+              <button className="answer" onClick={acceptCall}>
+                {isVideoCall ? '📹' : '📞'} Answer
+              </button>
+              <button className="reject" onClick={rejectCall}>
+                ❌ Reject
+              </button>
+            </ButtonGroup>
           </>
         )}
         {inCall && (
           <>
-            <p>In Call</p>
-            <button className="reject" onClick={hangUp}>
-              End Call
-            </button>
+            <CallInfo>
+              <p>{isVideoCall ? 'Video Call Active' : 'Audio Call Active'}</p>
+            </CallInfo>
+            <ButtonGroup>
+              <button className="reject" onClick={hangUp}>
+                📞 End Call
+              </button>
+            </ButtonGroup>
           </>
         )}
       </Actions>
@@ -122,7 +143,7 @@ export default function Chat() {
       }
 
       try {
-        const { data } = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+        const { data } = await axios.get(`${SERVER_URL}${allUsersRoute}/${currentUser._id}`);
         setContacts(data.filter((user) => user._id !== currentUser._id));
       } catch (err) {
         console.error("❌ Error fetching contacts:", err);
@@ -201,7 +222,7 @@ const Overlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -212,42 +233,159 @@ const Overlay = styled.div`
 const VideoContainer = styled.div`
   display: flex;
   gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
 
-  video {
-    border-radius: 10px;
-    width: 300px;
-    max-width: 90vw;
-    box-shadow: 0 0 10px #4e0eff;
+  .video-wrapper {
+    position: relative;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(78, 14, 255, 0.3);
+  }
+
+  .local-video {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 15px;
+  }
+
+  .remote-video {
+    width: 400px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 15px;
+  }
+
+  .video-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+
+  @media screen and (max-width: 768px) {
+    flex-direction: column;
+    
+    .local-video, .remote-video {
+      width: 280px;
+      height: 210px;
+    }
+  }
+`;
+
+const AudioContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  .audio-call-info {
+    background: rgba(78, 14, 255, 0.1);
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid #4e0eff;
+  }
+
+  .caller-avatar {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #4e0eff, #997af0);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+
+  h2 {
+    color: white;
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+  }
+
+  p {
+    color: #b3b3b3;
+    margin: 0;
+    font-size: 1rem;
   }
 `;
 
 const Actions = styled.div`
-  margin-top: 20px;
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+`;
+
+const CallInfo = styled.div`
+  text-align: center;
+  color: white;
+
+  p {
+    font-size: 1.2rem;
+    margin: 0 0 5px 0;
+    font-weight: bold;
+  }
+
+  span {
+    color: #b3b3b3;
+    font-size: 1rem;
+  }
+`;
+
+const ButtonGroup = styled.div`
   display: flex;
   gap: 20px;
 
   button {
-    padding: 12px 24px;
+    padding: 15px 30px;
     font-size: 1rem;
     border: none;
-    border-radius: 8px;
+    border-radius: 50px;
     cursor: pointer;
     color: white;
     font-weight: bold;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
 
   .answer {
-    background-color: #4caf50;
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
   }
+  
   .answer:hover {
-    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
   }
 
   .reject {
-    background-color: #f44336;
+    background: linear-gradient(135deg, #f44336, #da190b);
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
   }
+  
   .reject:hover {
-    background-color: #da190b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+  }
+
+  @media screen and (max-width: 480px) {
+    flex-direction: column;
+    
+    button {
+      min-width: 200px;
+    }
   }
 `;

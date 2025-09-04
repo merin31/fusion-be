@@ -55,12 +55,15 @@ export const CallProvider = ({ currentUser, children }) => {
 
     const pc = new RTCPeerConnection({ iceServers });
     pcRef.current = pc;
+    console.log("value of with video " + withVideo);
+    
     setIsVideoCall(withVideo);
-
+    console.log(withVideo ? "Starting video call" : "Starting audio call");
+    
     const constraints = withVideo
-      ? { video: true, audio: true }
-      : { video: false, audio: true };
-
+    ? { video: true, audio: true }
+    : { video: false, audio: true };
+    console.log(constraints);
     let local;
     try {
       local = await navigator.mediaDevices.getUserMedia(constraints);
@@ -69,7 +72,7 @@ export const CallProvider = ({ currentUser, children }) => {
       setLocalStream(null);
       setRemoteStream(null);
       throw err;
-    }
+    } 
     setLocalStream(local);
 
     // Start with an empty remote stream; will be replaced when tracks come in
