@@ -39,27 +39,18 @@ export const CallProvider = ({ children, currentUser }) => {
 
     // Handle remote stream
     peerConnectionRef.current.ontrack = (event) => {
-      console.log("Received remote stream with tracks:", event.streams[0].getTracks().length);
       const remoteStream = event.streams[0];
-
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-        console.log("Set remote video srcObject");
-
-        // Force play the remote stream
-        const playPromise = remoteVideoRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log("Remote video/audio playing");
-            })
-            .catch(e => {
-              console.log("Remote auto-play prevented:", e.message);
-              // Try to enable user interaction
-              document.addEventListener('click', () => {
-                remoteVideoRef.current.play().catch(console.error);
-              }, { once: true });
-            });
+      if (isVideoCall) {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          remoteVideoRef.current.muted = false;
+          remoteVideoRef.current.play().catch(() => {});
+        }
+      } else {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          remoteVideoRef.current.muted = false;
+          remoteVideoRef.current.play().catch(() => {});
         }
       }
     };
